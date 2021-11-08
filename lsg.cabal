@@ -1,6 +1,6 @@
 cabal-version:       2.4
 name:                lsg
-version:             0.1.1.0
+version:             0.2.0.0
 synopsis:            Search for files in your current directory
 homepage:            https://github.com/PrestonGray/lsg
 license:             MIT
@@ -9,18 +9,28 @@ author:              Preston Gray
 maintainer:          prestongray97@gmail.com
 extra-source-files:  CHANGELOG.md
 
+common deps
+
+  ghc-options:
+    -Wall
+    -Werror
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -O3
+  build-depends:    base
+                  , optparse-applicative
+
 library
-  exposed-modules:     Filters
-                     , Types
-  build-depends:       base
-  hs-source-dirs:      src
-  default-language:    Haskell2010
+  import:           deps
+  exposed-modules:  Filters
+                  , OptionParser
+  hs-source-dirs:   src
+  default-language: Haskell2010
 
 executable lsg
-  main-is:             Main.hs
-  build-depends:       base
-                     , directory
-                     , lsg
-  hs-source-dirs:      app
-  default-language:    Haskell2010
+  import:           deps
+  main-is:          Main.hs
+  build-depends:    lsg
+  hs-source-dirs:   app
+  default-language: Haskell2010
 
