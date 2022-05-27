@@ -1,30 +1,19 @@
 module Main where
 
--- import qualified Filters
-import qualified OptionParser as Parser
-import qualified Options.Applicative as Opts
--- import System.Directory (getCurrentDirectory, listDirectory, makeAbsolute)
--- import System.Environment (getArgs)
+import qualified LSG.OptionParser as Parser
+import qualified LSG.System as System
+import Options.Applicative ((<**>))
+import qualified Options.Applicative as Options
 
 main :: IO ()
-main = printOptions =<< Opts.execParser opts
+main = do
+  eOptions <- Options.execParser info
+  case Parser.validateOptions eOptions of
+    Left parseError -> Parser.printHelp info parseError
+    Right options -> System.listAndGrep options
   where
-    opts = Opts.info (Parser.options Opts.<**> Opts.helper)
-      ( Opts.fullDesc
-          <> Opts.progDesc "Print the options passed"
-          <> Opts.header "hello - a test for optparse-applicative"
+    info = Options.info (Parser.parseOptions <**> Options.helper)
+      ( Options.fullDesc
+          <> Options.progDesc "Search your current directory for a pattern (i.e. ls | grep PATTERN)"
+          <> Options.header "lsg - an executable for searching your current directory"
       )
-
-printOptions :: Parser.Options -> IO ()
-printOptions options = print options
-
--- main :: IO ()
--- main = do
---   args <- getArgs
---   case args of
---     [] -> putStrLn "USAGE: lsg [PATTERN]"
---     [pattern] -> do
---       files <- listDirectory =<< getCurrentDirectory
---       let filtered = filter (\file -> Filters.substring pattern file) files
---       print filtered
-
