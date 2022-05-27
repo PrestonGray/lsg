@@ -1,3 +1,6 @@
+-- |
+-- Description : The functions for filtering results based on passed options
+-- Maintainer  : Preston Gray
 module LSG.Filter where
 
 import Data.Char (toLower)

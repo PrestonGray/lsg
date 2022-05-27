@@ -1,29 +1,33 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+-- |
+-- Description : Contains types and functions for parsing CLI arguments
+-- Maintainer  : Preston Gray
 module LSG.OptionParser where
 
 import Data.Semigroup ((<>))
+import LSG.Config (LSGConfig (..), Options (..))
+import Options.Applicative ((<|>))
 import qualified Options.Applicative as Opts
+import qualified System.Console.ANSI as ANSI
 
--- | Options outlines possible command line arguments
-data Options = Options
-  { optPattern :: String
-  , optAll :: Bool
-  , optFiles :: Bool
-  , optColor :: Bool
-  , optHidden :: Bool
-  , optVersion :: Bool
-  , optCaseMatch :: Bool
-  , optStartsWith :: Bool
-  , optDirectories :: Bool
-  , optExecutables :: Bool
-  , optFilterExecutables :: Bool
+-- | The top level functionality of lsg based on parsed arguments
+data LSGFunction
+  = Standard Modifiers
+  | GenerateConfig
+  deriving (Eq, Show)
+
+-- | The parsed arguments for standard lsg function 
+data Modifiers = Modifiers
+  { lsgPattern :: String
+  , lsgConfig :: LSGConfig
   } deriving (Eq, Show)
 
 -- Manually print the error and usage text
 printError :: Opts.ParserInfo a -> Opts.ParseError -> IO ()
-printError parserInfo parseError = Opts.handleParseResult $ Opts.Failure
-  $ Opts.parserFailure Opts.defaultPrefs parserInfo parseError mempty
+printError parserInfo parseError =
+  Opts.handleParseResult . Opts.Failure $
+    Opts.parserFailure Opts.defaultPrefs parserInfo parseError mempty
 
 -- | Helper function creating generic structure for parsing flags
 flagParser :: Char -> String -> String -> Bool -> Opts.Parser Bool
@@ -34,22 +38,41 @@ flagParser short long help config =
       <> Opts.help help
     )
 
+-- | Top level options parse function for alternative function
+parseFunction :: Opts.Parser LSGFunction
+parseFunction = parseStandardOptions <|> parseGenerateConfig
+
+-- | Parses generate config function
+parseGenerateConfig :: Opts.Parser LSGFunction
+parseGenerateConfig =
+  Opts.flag' GenerateConfig
+    ( Opts.long "generate-config"
+      <> Opts.help "Generate a default config at ~/.lsgrc"
+    )
+
 -- | Parses the standard argument and option executable call pattern
--- e.g. lsg [FLAGS] PATTERN
-parseOptions :: Opts.Parser Options
-parseOptions =
-  Options
-    <$> (Opts.argument Opts.str (Opts.metavar "PATTERN"))
-    <*> allParser
-    <*> fileParser
-    <*> colorParser
-    <*> hiddenParser
-    <*> versionParser
-    <*> caseMatchParser
-    <*> startsWithParser
-    <*> directoryParser
-    <*> executableParser
-    <*> filterExecutableParser
+-- e.g. lsg PATTERN [FLAGS]
+parseStandardOptions :: Opts.Parser LSGFunction
+parseStandardOptions =
+  Standard <$>
+    (Modifiers
+      <$> (Opts.argument Opts.str (Opts.metavar "PATTERN"))
+      <*> (LSGConfig
+            <$> (Options
+                  <$> allParser
+                  <*> fileParser
+                  <*> colorParser
+                  <*> hiddenParser
+                  <*> versionParser
+                  <*> caseMatchParser
+                  <*> startsWithParser
+                  <*> directoryParser
+                  <*> executableParser
+                  <*> filterExecutableParser
+                )
+            <*> matchColorParser
+          )
+    )
 
 allParser :: Opts.Parser Bool
 allParser =
@@ -132,12 +155,22 @@ versionParser =
         <> Opts.help "Print lsg version"
     )
 
--- TODO: Read defaults from ~/.lsgrc and memoize somehow
+matchColorParser :: Opts.Parser ANSI.Color
+matchColorParser = pure $ lsgMatchColor defaultConfig
+
+-- | TODO: Parse defaults from ~/.lsgrc config
+defaultConfig :: LSGConfig
+defaultConfig =
+  LSGConfig
+    { lsgOptions = defaultOptions
+    , lsgMatchColor = ANSI.Green
+    }
+
+-- | TODO: Parse defaults from ~/.lsgrc config
 defaultOptions :: Options
 defaultOptions =
   Options
-    { optPattern = ""
-    , optAll = False
+    { optAll = False
     , optFiles = False
     , optColor = False
     , optHidden = False
@@ -150,8 +183,8 @@ defaultOptions =
     }
 
 -- | Ensure that conflicting flags aren't passed
-validateOptions :: Options -> Either Opts.ParseError Options
-validateOptions opts
-  | (optExecutables opts) && (optFilterExecutables opts) =
+validateModifiers :: Modifiers -> Either Opts.ParseError Modifiers
+validateModifiers modifiers@(Modifiers _ config)
+  | (optExecutables $ lsgOptions config) && (optFilterExecutables $ lsgOptions config) =
       Left $ Opts.ErrorMsg "Cannot use both (-x|--executables) and (-X|--non-executables)"
-  | otherwise = Right opts
+  | otherwise = Right modifiers
