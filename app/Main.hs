@@ -9,7 +9,7 @@ main :: IO ()
 main = do
   eOptions <- Options.execParser info
   case Parser.validateOptions eOptions of
-    Left parseError -> Parser.printHelp info parseError
+    Left parseError -> Parser.printError info parseError
     Right options -> System.listAndGrep options
   where
     info = Options.info (Parser.parseOptions <**> Options.helper)

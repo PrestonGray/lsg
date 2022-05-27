@@ -20,9 +20,9 @@ data Options = Options
   , optFilterExecutables :: Bool
   } deriving (Eq, Show)
 
--- Manually print the help text in the case of an error
-printHelp :: Opts.ParserInfo a -> Opts.ParseError -> IO ()
-printHelp parserInfo parseError = Opts.handleParseResult $ Opts.Failure
+-- Manually print the error and usage text
+printError :: Opts.ParserInfo a -> Opts.ParseError -> IO ()
+printError parserInfo parseError = Opts.handleParseResult $ Opts.Failure
   $ Opts.parserFailure Opts.defaultPrefs parserInfo parseError mempty
 
 -- | Helper function creating generic structure for parsing flags
@@ -153,5 +153,5 @@ defaultOptions =
 validateOptions :: Options -> Either Opts.ParseError Options
 validateOptions opts
   | (optExecutables opts) && (optFilterExecutables opts) =
-      Left $ Opts.ErrorMsg "Cannot pass (-x|--executables) and (-X|--non-executables)"
+      Left $ Opts.ErrorMsg "Cannot use both (-x|--executables) and (-X|--non-executables)"
   | otherwise = Right opts
