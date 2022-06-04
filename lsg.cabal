@@ -22,6 +22,7 @@ common deps
                   , dhall
                   , directory
                   , optparse-applicative
+                  , text
 
 library
   import:           deps

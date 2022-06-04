@@ -3,7 +3,7 @@
 --   System exposes the entry point for operation of lsg, searching the 
 --   current directory for a pattern filtered by passed options.
 -- Maintainer  : Preston Gray
-module LSG.System (generateConfig, listAndGrep) where
+module LSG.System (listAndGrep) where
 
 import qualified LSG.Filter as Filter
 import qualified LSG.OptionParser as Opts
@@ -18,8 +18,3 @@ listAndGrep opts = do
   files <- listDirectory =<< getCurrentDirectory
   let filtered = filter (\file -> Filter.substring (Opts.lsgPattern opts) file) files
   print filtered
-
--- | Generates default config at ~/.lsgrc
--- USAGE: lsg --generate-config
-generateConfig :: IO ()
-generateConfig = putStrLn "Generate Config"
