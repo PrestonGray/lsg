@@ -5,7 +5,13 @@
 -- |
 -- Description : Contains types for reading/writing config file
 -- Maintainer  : Preston Gray
-module LSG.Config where
+module LSG.Config
+  ( LSGConfig (..),
+    Options (..),
+    createDefaultConfig,
+    getDefaultConfig,
+  )
+where
 
 import Control.Exception (SomeException, catch)
 import qualified Data.Text as Text
@@ -149,16 +155,16 @@ defaultConfigContents =
 -- | Reads the config file if it exists, using default false flags if it does not
 getDefaultConfig :: IO LSGConfig
 getDefaultConfig = do
-  fileExists <- System.doesFileExist =<< defaultConfigPath
+  filename <- defaultConfigPath
+  fileExists <- System.doesFileExist filename
   if fileExists
-     then readDefaultConfig
+     then readDefaultConfig filename
      else return defaultConfig
 
 -- | Attempts to read the default config from ~/.lsgrc
 -- Uses the default of all false flags if the config file cannot be parsed
-readDefaultConfig :: IO LSGConfig
-readDefaultConfig = do
-  filename <- defaultConfigPath
+readDefaultConfig :: FilePath -> IO LSGConfig
+readDefaultConfig filename = do
   catch
     (Dhall.inputFile Dhall.auto filename :: IO LSGConfig)
     (\exc -> do
@@ -208,16 +214,6 @@ data Color
   deriving (Eq, Show, Generic)
 
 instance Dhall.FromDhall Color
-
-fromANSIColor :: ANSI.Color -> Color
-fromANSIColor ANSI.Black = Black
-fromANSIColor ANSI.Red = Red
-fromANSIColor ANSI.Green = Green
-fromANSIColor ANSI.Yellow = Yellow
-fromANSIColor ANSI.Blue = Blue
-fromANSIColor ANSI.Magenta = Magenta
-fromANSIColor ANSI.Cyan = Cyan
-fromANSIColor ANSI.White = White
 
 toANSIColor :: Color -> ANSI.Color
 toANSIColor Black = ANSI.Black

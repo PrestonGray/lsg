@@ -14,7 +14,7 @@ import qualified Options.Applicative as Options
 -- | The main entry point for the lsg executable
 main :: IO ()
 main = do
-  config <- Config.readDefaultConfig
+  config <- Config.getDefaultConfig
   lsgFunction <- Options.execParser $ info config
   case lsgFunction of
     Parser.GenerateConfig -> Config.createDefaultConfig
