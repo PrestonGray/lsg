@@ -6,10 +6,10 @@
 -- Description : Contains types for reading/writing config file
 -- Maintainer  : Preston Gray
 module LSG.Config
-  ( LSGConfig (..),
-    Options (..),
-    createDefaultConfig,
-    getDefaultConfig,
+  ( LSGConfig (..)
+  , Options (..)
+  , createDefaultConfig
+  , getDefaultConfig
   )
 where
 
