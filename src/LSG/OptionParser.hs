@@ -3,7 +3,14 @@
 -- |
 -- Description : Contains types and functions for parsing CLI arguments
 -- Maintainer  : Preston Gray
-module LSG.OptionParser where
+module LSG.OptionParser
+  ( LSGFunction (..)
+  , Modifiers (..)
+  , parseFunction
+  , printError
+  , validateModifiers
+  )
+where
 
 import Data.Semigroup ((<>))
 import LSG.Config (LSGConfig (..), Options (..))
