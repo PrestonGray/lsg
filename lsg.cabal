@@ -17,13 +17,17 @@ common deps
     -Wincomplete-record-updates
     -Wincomplete-uni-patterns
     -O3
-  build-depends:    base
+  build-depends:    ansi-terminal
+                  , base
+                  , dhall
                   , directory
                   , optparse-applicative
+                  , text
 
 library
   import:           deps
-  exposed-modules:  LSG.Filter
+  exposed-modules:  LSG.Config
+                    LSG.Filter
                     LSG.OptionParser
                     LSG.System
   hs-source-dirs:   src

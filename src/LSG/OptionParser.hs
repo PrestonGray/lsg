@@ -1,29 +1,32 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+-- |
+-- Description : Contains types and functions for parsing CLI arguments
+-- Maintainer  : Preston Gray
 module LSG.OptionParser where
 
 import Data.Semigroup ((<>))
+import LSG.Config (LSGConfig (..), Options (..))
+import Options.Applicative ((<|>))
 import qualified Options.Applicative as Opts
 
--- | Options outlines possible command line arguments
-data Options = Options
-  { optPattern :: String
-  , optAll :: Bool
-  , optFiles :: Bool
-  , optColor :: Bool
-  , optHidden :: Bool
-  , optVersion :: Bool
-  , optCaseMatch :: Bool
-  , optStartsWith :: Bool
-  , optDirectories :: Bool
-  , optExecutables :: Bool
-  , optFilterExecutables :: Bool
+-- | The top level functionality of lsg based on parsed arguments
+data LSGFunction
+  = Standard Modifiers
+  | GenerateConfig
+  deriving (Eq, Show)
+
+-- | The parsed arguments for standard lsg function 
+data Modifiers = Modifiers
+  { lsgPattern :: String
+  , lsgConfig :: LSGConfig
   } deriving (Eq, Show)
 
 -- Manually print the error and usage text
 printError :: Opts.ParserInfo a -> Opts.ParseError -> IO ()
-printError parserInfo parseError = Opts.handleParseResult $ Opts.Failure
-  $ Opts.parserFailure Opts.defaultPrefs parserInfo parseError mempty
+printError parserInfo parseError =
+  Opts.handleParseResult . Opts.Failure $
+    Opts.parserFailure Opts.defaultPrefs parserInfo parseError mempty
 
 -- | Helper function creating generic structure for parsing flags
 flagParser :: Char -> String -> String -> Bool -> Opts.Parser Bool
@@ -34,94 +37,113 @@ flagParser short long help config =
       <> Opts.help help
     )
 
--- | Parses the standard argument and option executable call pattern
--- e.g. lsg [FLAGS] PATTERN
-parseOptions :: Opts.Parser Options
-parseOptions =
-  Options
-    <$> (Opts.argument Opts.str (Opts.metavar "PATTERN"))
-    <*> allParser
-    <*> fileParser
-    <*> colorParser
-    <*> hiddenParser
-    <*> versionParser
-    <*> caseMatchParser
-    <*> startsWithParser
-    <*> directoryParser
-    <*> executableParser
-    <*> filterExecutableParser
+-- | Top level options parse function for alternative function
+parseFunction :: LSGConfig -> Opts.Parser LSGFunction
+parseFunction cfg = (parseStandardOptions cfg) <|> parseGenerateConfig
 
-allParser :: Opts.Parser Bool
-allParser =
+-- | Parses generate config function
+parseGenerateConfig :: Opts.Parser LSGFunction
+parseGenerateConfig =
+  Opts.flag' GenerateConfig
+    ( Opts.long "generate-config"
+      <> Opts.help "Generate an editable default config at ~/.lsgrc"
+    )
+
+-- | Parses the standard argument and option executable call pattern
+-- e.g. lsg PATTERN [FLAGS]
+parseStandardOptions :: LSGConfig -> Opts.Parser LSGFunction
+parseStandardOptions (LSGConfig opts color) =
+  Standard <$>
+    (Modifiers
+      <$> (Opts.argument Opts.str (Opts.metavar "PATTERN"))
+      <*> (LSGConfig
+            <$> (Options
+                  <$> (allParser $ optAll opts)
+                  <*> (fileParser $ optFiles opts)
+                  <*> (directoryParser $ optDirectories opts)
+                  <*> (hiddenParser $ optHidden opts)
+                  <*> (executableParser $ optExecutables opts)
+                  <*> (filterExecutableParser $ optNonExecutables opts)
+                  <*> (caseMatchParser $ optCaseMatch opts)
+                  <*> (startsWithParser $ optStartsWith opts)
+                  <*> (colorParser $ optColor opts)
+                  <*> versionParser
+                )
+              <*> (pure color)
+          )
+    )
+
+allParser :: Bool -> Opts.Parser Bool
+allParser defaultOpt =
   flagParser
     'a'
     "all"
     "Search all files, including hidden files"
-    (optAll defaultOptions)
+    defaultOpt
 
-colorParser :: Opts.Parser Bool
-colorParser =
+colorParser :: Bool -> Opts.Parser Bool
+colorParser defaultOpt =
   flagParser
     'c'
     "color"
     "Enable/disable color. Overrides config"
-    (optColor defaultOptions)
+    defaultOpt
 
-hiddenParser :: Opts.Parser Bool
-hiddenParser =
+hiddenParser :: Bool -> Opts.Parser Bool
+hiddenParser defaultOpt =
   flagParser
     'o'
     "hidden"
     "Search only hidden files"
-    (optHidden defaultOptions)
+    defaultOpt
 
-caseMatchParser :: Opts.Parser Bool
-caseMatchParser =
+caseMatchParser :: Bool -> Opts.Parser Bool
+caseMatchParser defaultOpt =
   flagParser
     'm'
     "match-case"
     "Enable/Disable case-sensitive matches. Overrides config"
-    (optCaseMatch defaultOptions)
+    defaultOpt
 
-startsWithParser :: Opts.Parser Bool
-startsWithParser =
+startsWithParser :: Bool -> Opts.Parser Bool
+startsWithParser defaultOpt =
   flagParser
     's'
     "starts-with"
     "Return matches that start with the pattern"
-    (optStartsWith defaultOptions)
+    defaultOpt
 
-executableParser :: Opts.Parser Bool
-executableParser =
+executableParser :: Bool -> Opts.Parser Bool
+executableParser defaultOpt =
   flagParser
     'x'
     "executables"
     "Search only executable files"
-    (optExecutables defaultOptions)
+    defaultOpt
 
-filterExecutableParser :: Opts.Parser Bool
-filterExecutableParser =
+filterExecutableParser :: Bool -> Opts.Parser Bool
+filterExecutableParser defaultOpt =
   flagParser
     'X'
     "non-executables"
     "Filter out executables from search results"
-    (optFilterExecutables defaultOptions)
+    defaultOpt
 
-directoryParser :: Opts.Parser Bool
-directoryParser =
+directoryParser :: Bool -> Opts.Parser Bool
+directoryParser defaultOpt =
   flagParser
     'd'
     "directories"
     "Search only directories"
-    (optDirectories defaultOptions)
+    defaultOpt
 
-fileParser :: Opts.Parser Bool
-fileParser =
+fileParser :: Bool -> Opts.Parser Bool
+fileParser defaultOpt =
   flagParser
     'f'
     "files"
     "Search only files"
-    (optFiles defaultOptions)
+    defaultOpt
 
 -- | The version flag is a simple boolean switch as it is not configurable
 versionParser :: Opts.Parser Bool
@@ -132,26 +154,9 @@ versionParser =
         <> Opts.help "Print lsg version"
     )
 
--- TODO: Read defaults from ~/.lsgrc and memoize somehow
-defaultOptions :: Options
-defaultOptions =
-  Options
-    { optPattern = ""
-    , optAll = False
-    , optFiles = False
-    , optColor = False
-    , optHidden = False
-    , optVersion = False
-    , optCaseMatch = False
-    , optStartsWith = False
-    , optDirectories = False
-    , optExecutables = False
-    , optFilterExecutables = False
-    }
-
 -- | Ensure that conflicting flags aren't passed
-validateOptions :: Options -> Either Opts.ParseError Options
-validateOptions opts
-  | (optExecutables opts) && (optFilterExecutables opts) =
+validateModifiers :: Modifiers -> Either Opts.ParseError Modifiers
+validateModifiers modifiers@(Modifiers _ config)
+  | (optExecutables $ lsgOptions config) && (optNonExecutables $ lsgOptions config) =
       Left $ Opts.ErrorMsg "Cannot use both (-x|--executables) and (-X|--non-executables)"
-  | otherwise = Right opts
+  | otherwise = Right modifiers
