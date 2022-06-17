@@ -70,7 +70,7 @@ parseStandardOptions (LSGConfig opts color) =
                   <*> (directoryParser $ optDirectories opts)
                   <*> (hiddenParser $ optHidden opts)
                   <*> (executableParser $ optExecutables opts)
-                  <*> (filterExecutableParser $ optNonExecutables opts)
+                  <*> (nonExecutableParser $ optNonExecutables opts)
                   <*> (caseMatchParser $ optCaseMatch opts)
                   <*> (startsWithParser $ optStartsWith opts)
                   <*> (colorParser $ optColor opts)
@@ -128,8 +128,8 @@ executableParser defaultOpt =
     "Search only executable files"
     defaultOpt
 
-filterExecutableParser :: Bool -> Opts.Parser Bool
-filterExecutableParser defaultOpt =
+nonExecutableParser :: Bool -> Opts.Parser Bool
+nonExecutableParser defaultOpt =
   flagParser
     'X'
     "non-executables"

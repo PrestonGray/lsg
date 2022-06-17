@@ -5,16 +5,16 @@
 -- Maintainer  : Preston Gray
 module LSG.System (listAndGrep) where
 
-import qualified LSG.Filter as Filter
+import qualified LSG.Config as Config
 import qualified LSG.OptionParser as Opts
-import System.Directory (getCurrentDirectory, listDirectory)
+import qualified LSG.Search as Search
 
 -- | The standard routine for lsg
 -- Searches for the target pattern and filters the results based on flags
 -- USAGE: lsg PATTERN [FLAGS]
 -- TODO: Implement different function based on options
 listAndGrep :: Opts.Modifiers -> IO ()
-listAndGrep opts = do
-  files <- listDirectory =<< getCurrentDirectory
-  let filtered = filter (\file -> Filter.substring (Opts.lsgPattern opts) file) files
-  print filtered
+listAndGrep mods = do
+  -- Search the files with the given options and pattern
+  results <- Search.searchDirectory (Config.lsgOptions $ Opts.lsgConfig mods) (Opts.lsgPattern mods)
+  print results

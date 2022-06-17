@@ -27,7 +27,7 @@ common deps
 library
   import:           deps
   exposed-modules:  LSG.Config
-                    LSG.Filter
+                    LSG.Search
                     LSG.OptionParser
                     LSG.System
   hs-source-dirs:   src
